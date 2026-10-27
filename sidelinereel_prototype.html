@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SidelineReel | Intelligent Jersey Tagging & Auto-Recap Delivery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 4px;
+    }
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(1000%); }
+    }
+    .animate-scan {
+      animation: scanline 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-glow {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-black">
+
+  <!-- Top Global Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-slate-950 font-black text-xl tracking-tighter">
+          SR
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-lg tracking-tight text-white">SidelineReel</span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">v2.4 Smart-Tag</span>
+          </div>
+          <p class="text-xs text-slate-400">An <a href="https://ajaia.ai" target="_blank" class="text-emerald-400 hover:underline">Ajaia</a> AI Product System</p>
+        </div>
+      </div>
+
+      <!-- Stepper Indicator -->
+      <nav class="hidden md:flex items-center space-x-1 sm:space-x-4 bg-slate-900 p-1 rounded-xl border border-slate-800 text-sm">
+        <button id="step-btn-1" onclick="switchStep(1)" class="px-4 py-1.5 rounded-lg font-medium transition-all text-emerald-400 bg-slate-800 shadow-sm flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs flex items-center justify-center font-bold">1</span>
+          <span>CV Ingestion</span>
+        </button>
+        <button id="step-btn-2" onclick="switchStep(2)" class="px-4 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-300 text-xs flex items-center justify-center font-bold" id="badge-step-2">2</span>
+          <span>Coach Human-in-Loop</span>
+          <span id="flag-count-pill" class="text-xs px-1.5 py-0.2 bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/30">2 flags</span>
+        </button>
+        <button id="step-btn-3" onclick="switchStep(3)" class="px-4 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200 flex items-center space-x-2">
+          <span class="w-5 h-5 rounded-full bg-slate-800 text-slate-300 text-xs flex items-center justify-center font-bold">3</span>
+          <span>Scheduled Dispatch</span>
+        </button>
+      </nav>
+
+      <!-- Account Badge -->
+      <div class="flex items-center space-x-3">
+        <div class="text-right hidden sm:block">
+          <div class="text-xs font-semibold text-slate-200">Ridgeline Youth Soccer Club</div>
+          <div class="text-[11px] text-emerald-400 flex items-center justify-end gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> U14 Girls Premier
+          </div>
+        </div>
+        <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
+          RC
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Main Work Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ========================================== -->
+    <!-- STEP 1: Computer Vision Ingestion Pipeline -->
+    <!-- ========================================== -->
+    <section id="step-1" class="space-y-6">
+      <!-- Context Callout -->
+      <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/40 p-5 rounded-2xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold mb-2">
+            <span>Core Objective: Zero Misattributed Reels</span>
+          </div>
+          <h2 class="text-xl font-bold text-white tracking-tight">AI Multi-Digit Disambiguation & Frame Ingestion</h2>
+          <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+            Solves the root cause of Ridgeline, Brightwater, and Cobblestone support tickets: digit swaps (#14 vs #4, #1 vs #11). OCR flags low-confidence bounding boxes for human confirmation before reel synthesis.
+          </p>
+        </div>
+        <div class="flex items-center space-x-3 shrink-0">
+          <button id="load-sample-btn" onclick="runSimulatedPipeline()" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Run Pipeline: Ridgeline vs Westside (4K)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload Zone / Active Simulation State -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Live Video & Detection Canvas Simulation -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-800/80 mb-4">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-sm font-semibold text-slate-200">Sideline Neural Vision Stream: Feed-01</span>
+            </div>
+            <span id="cv-status-pill" class="text-xs px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 font-mono-code">Status: Ready for footage</span>
+          </div>
+
+          <!-- Video Viewport / Bounding Box Stage -->
+          <div class="relative w-full aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center group">
+            <!-- Simulated Stadium / Pitch Canvas Background -->
+            <div id="sim-pitch" class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-60"></div>
+            
+            <!-- Scanline effect during scanning -->
+            <div id="scanline" class="hidden absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/10 to-transparent h-12 w-full animate-scan pointer-events-none"></div>
+
+            <!-- Pitch Markings SVG Graphic -->
+            <svg class="absolute inset-0 w-full h-full opacity-20 pointer-events-none" viewBox="0 0 800 450">
+              <rect x="20" y="20" width="760" height="410" fill="none" stroke="#64748b" stroke-width="2"/>
+              <line x1="400" y1="20" x2="400" y2="430" stroke="#64748b" stroke-width="2"/>
+              <circle cx="400" cy="225" r="70" fill="none" stroke="#64748b" stroke-width="2"/>
+              <rect x="20" y="145" width="120" height="160" fill="none" stroke="#64748b" stroke-width="2"/>
+              <rect x="660" y="145" width="120" height="160" fill="none" stroke="#64748b" stroke-width="2"/>
+            </svg>
+
+            <!-- Detected Player Simulation Bounding Boxes -->
+            <div id="box-player-14" class="absolute top-28 left-48 transition-all duration-700 opacity-0 transform scale-95">
+              <div class="relative p-1 border-2 border-amber-400 bg-amber-500/10 rounded backdrop-blur-xs">
+                <span class="absolute -top-6 left-0 bg-amber-400 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded font-mono-code uppercase tracking-wider flex items-center gap-1">
+                  <span>? #14 vs #4</span>
+                  <span class="bg-black/30 text-white px-1 rounded text-[9px]">62% Conf</span>
+                </span>
+                <div class="w-20 h-36 flex flex-col items-center justify-between py-2">
+                  <div class="w-8 h-8 rounded-full bg-amber-300/40 border border-amber-400 flex items-center justify-center text-[10px] font-bold">14?</div>
+                  <div class="w-14 h-16 border border-dashed border-amber-400/60 rounded flex items-center justify-center text-[11px] font-bold text-amber-200">
+                    Blur / Fold
+                  </div>
+                  <div class="text-[9px] text-amber-300 font-mono-code">Maya G. (?)</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="box-player-9" class="absolute top-36 right-48 transition-all duration-700 opacity-0 transform scale-95">
+              <div class="relative p-1 border-2 border-emerald-400 bg-emerald-500/10 rounded">
+                <span class="absolute -top-6 left-0 bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded font-mono-code uppercase tracking-wider">
+                  #9 Sophia K. (98%)
+                </span>
+                <div class="w-20 h-32 flex flex-col items-center justify-between py-2">
+                  <div class="w-8 h-8 rounded-full bg-emerald-300/40 border border-emerald-400 flex items-center justify-center text-[10px] font-bold">9</div>
+                  <div class="text-[9px] text-emerald-300 font-mono-code">Clear OCR</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="box-player-1" class="absolute bottom-16 left-1/3 transition-all duration-700 opacity-0 transform scale-95">
+              <div class="relative p-1 border-2 border-amber-400 bg-amber-500/10 rounded">
+                <span class="absolute -top-6 left-0 bg-amber-400 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded font-mono-code uppercase tracking-wider flex items-center gap-1">
+                  <span>? #1 vs #11</span>
+                  <span class="bg-black/30 text-white px-1 rounded text-[9px]">58% Conf</span>
+                </span>
+                <div class="w-16 h-28 flex flex-col items-center justify-between py-1">
+                  <div class="w-6 h-6 rounded-full bg-amber-300/40 border border-amber-400 text-[10px] flex items-center justify-center font-bold">1?</div>
+                  <div class="text-[9px] text-amber-300 font-mono-code">Arm Occlusion</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Idle Placeholder -->
+            <div id="idle-prompt" class="text-center p-6 z-10">
+              <div class="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              </div>
+              <h3 class="font-bold text-slate-200 text-base">Game Footage Ingest</h3>
+              <p class="text-xs text-slate-400 max-w-sm mt-1">Upload camera file (MP4/MOV) or trigger the test batch to run dual-digit disambiguation against the Ridgeline U14 roster.</p>
+              <button onclick="runSimulatedPipeline()" class="mt-4 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-emerald-400 transition">
+                Simulate Footage Ingest
+              </button>
+            </div>
+          </div>
+
+          <!-- Real-Time Metric Ticker -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-800">
+            <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+              <span class="text-[11px] text-slate-400 font-medium">Frames Processed</span>
+              <p id="stat-frames" class="text-lg font-bold font-mono-code text-slate-100">0</p>
+            </div>
+            <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+              <span class="text-[11px] text-slate-400 font-medium">Plays Extracted</span>
+              <p id="stat-plays" class="text-lg font-bold font-mono-code text-slate-100">0</p>
+            </div>
+            <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+              <span class="text-[11px] text-slate-400 font-medium">High Conf (>85%)</span>
+              <p id="stat-high" class="text-lg font-bold font-mono-code text-emerald-400">0</p>
+            </div>
+            <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+              <span class="text-[11px] text-slate-400 font-medium">Ambiguous Flags</span>
+              <p id="stat-flags" class="text-lg font-bold font-mono-code text-amber-400">0</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry & Pipeline Console -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                Disambiguation Engine
+              </h3>
+              <span class="text-[10px] uppercase font-mono-code px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">Ajaia-CV v3</span>
+            </div>
+
+            <!-- Ingestion Progress Bar -->
+            <div class="mt-4 space-y-1.5">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-400">Pipeline Execution</span>
+                <span id="progress-percent" class="font-mono-code font-bold text-emerald-400">0%</span>
+              </div>
+              <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                <div id="progress-bar-fill" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+              </div>
+            </div>
+
+            <!-- Live Stream Console Log -->
+            <div class="mt-4">
+              <label class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Inference Log</label>
+              <div id="console-logs" class="mt-1.5 bg-slate-950 p-3 rounded-xl border border-slate-800 h-48 overflow-y-auto text-[11px] font-mono-code space-y-1.5 text-slate-400 custom-scrollbar">
+                <p class="text-slate-500">// System idle. Ready to parse match footage.</p>
+              </div>
+            </div>
+
+            <!-- Decision Rule Explanation -->
+            <div class="mt-4 p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-xs space-y-1.5">
+              <div class="font-semibold text-slate-300 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                Safety Guardrail Rule #1
+              </div>
+              <p class="text-slate-400 leading-relaxed text-[11px]">
+                Clips with OCR confidence &lt; 85% or similarity clashes (e.g., #4 vs #14) are <strong class="text-amber-300">diverted to Coach Review</strong>. Never send ambiguous clips directly to a family reel.
+              </p>
+            </div>
+          </div>
+
+          <!-- Footer Action inside Card -->
+          <div class="mt-4 pt-3 border-t border-slate-800 flex justify-end">
+            <button id="proceed-to-step-2" onclick="switchStep(2)" disabled class="w-full py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 bg-slate-800 text-slate-500 cursor-not-allowed">
+              <span>Continue to Coach Review Queue</span>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- STEP 2: Coach Quick-Review Queue (Human In The Loop Interface) -->
+    <!-- ============================================================== -->
+    <section id="step-2" class="space-y-6 hidden">
+      <!-- Banner -->
+      <div class="bg-gradient-to-r from-amber-950/30 via-slate-900 to-slate-900 p-5 rounded-2xl border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-semibold mb-2">
+            <span>Human-in-the-Loop Verification</span>
+          </div>
+          <h2 class="text-xl font-bold text-white tracking-tight">Coach Rapid-Review Queue</h2>
+          <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+            The AI isolated 2 clips where jersey folds or occlusion created ambiguity. One-click resolution takes &lt; 30 seconds and protects parent delight.
+          </p>
+        </div>
+        <div class="flex items-center space-x-2 text-xs font-mono-code bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+          <span class="text-slate-400">Pending Review:</span>
+          <span id="queue-count-pill" class="font-bold text-amber-400">2 clips remaining</span>
+        </div>
+      </div>
+
+      <!-- Review Card Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Flagged Item 1: Maya (#14) vs Chloe (#4) [Ridgeline Ticket recreation] -->
+        <div id="card-flag-1" class="bg-slate-900 border-2 border-amber-500/40 rounded-2xl p-5 shadow-lg flex flex-col justify-between transition-all duration-300">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 text-xs font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Clip #04 — 64th Minute</span>
+                <span class="text-xs text-slate-400">High Danger Shot</span>
+              </div>
+              <span id="status-badge-1" class="text-xs px-2 py-0.5 rounded-full font-mono-code bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                OCR Ambiguity: 62%
+              </span>
+            </div>
+
+            <!-- Clip Preview Frame with visual bounding box -->
+            <div class="relative mt-4 aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10"></div>
+              
+              <!-- Simulated Match Frame -->
+              <div class="w-full h-full bg-slate-900 flex items-center justify-center relative">
+                <div class="absolute top-1/4 left-1/3 p-2 border-2 border-dashed border-amber-400 bg-amber-400/10 rounded flex flex-col items-center">
+                  <div class="text-[10px] bg-amber-400 text-slate-950 font-bold px-1 rounded">Digit Occluded [?4]</div>
+                  <div class="w-16 h-24 flex items-center justify-center text-3xl font-black text-amber-300 opacity-80">
+                    1?4
+                  </div>
+                </div>
+                <div class="text-center text-xs text-slate-500">
+                  <p class="font-semibold text-slate-400">Cross into Penalty Box</p>
+                  <p class="text-[11px]">Jersey fold obscured leading digit "1"</p>
+                </div>
+              </div>
+
+              <!-- Play button overlay -->
+              <div class="absolute z-20 w-10 h-10 rounded-full bg-slate-900/80 border border-slate-700 flex items-center justify-center text-white cursor-pointer hover:scale-110 transition">
+                <svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+              </div>
+            </div>
+
+            <!-- Candidate Roster Match Comparison -->
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              <!-- Candidate A: Maya 14 -->
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-base border border-emerald-500/30">
+                  14
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Maya Gonzalez</h4>
+                  <p class="text-[11px] text-slate-400">Forward • Right Wing</p>
+                  <p class="text-[10px] text-emerald-400 font-mono-code">Roster match (94% bio)</p>
+                </div>
+              </div>
+
+              <!-- Candidate B: Chloe 4 -->
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-slate-800 text-slate-300 font-bold flex items-center justify-center text-base border border-slate-700">
+                  4
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Chloe Chen</h4>
+                  <p class="text-[11px] text-slate-400">Center Back (Def)</p>
+                  <p class="text-[10px] text-slate-400 font-mono-code">Roster match (12% bio)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coach Quick Actions -->
+          <div class="mt-5 pt-4 border-t border-slate-800">
+            <span class="text-[11px] text-slate-400 block mb-2 font-medium">Coach Decision: Which player scored the play?</span>
+            <div id="actions-clip-1" class="grid grid-cols-3 gap-2">
+              <button onclick="resolveClip(1, 'Maya #14 (Corrected)')" class="py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-sm">
+                Confirm Maya #14
+              </button>
+              <button onclick="resolveClip(1, 'Chloe #4')" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition border border-slate-700">
+                Assign Chloe #4
+              </button>
+              <button onclick="resolveClip(1, 'Rejected')" class="py-2 px-3 rounded-xl bg-slate-950 hover:bg-red-500/20 text-red-400 font-semibold text-xs transition border border-red-500/20">
+                Discard Clip
+              </button>
+            </div>
+            <div id="resolved-banner-1" class="hidden py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center justify-between">
+              <span>✓ Verified & Assigned to Maya #14 Reel</span>
+              <button onclick="undoClip(1)" class="text-xs text-slate-400 hover:text-white underline">Undo</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flagged Item 2: Ethan (#1) vs Lucas (#11) [Cobblestone Ticket recreation] -->
+        <div id="card-flag-2" class="bg-slate-900 border-2 border-amber-500/40 rounded-2xl p-5 shadow-lg flex flex-col justify-between transition-all duration-300">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 text-xs font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">Clip #08 — 81st Minute</span>
+                <span class="text-xs text-slate-400">Goalkeeper Dive Save</span>
+              </div>
+              <span id="status-badge-2" class="text-xs px-2 py-0.5 rounded-full font-mono-code bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                OCR Ambiguity: 58%
+              </span>
+            </div>
+
+            <!-- Clip Preview Frame -->
+            <div class="relative mt-4 aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10"></div>
+              
+              <div class="w-full h-full bg-slate-900 flex items-center justify-center relative">
+                <div class="absolute bottom-1/4 right-1/3 p-2 border-2 border-dashed border-amber-400 bg-amber-400/10 rounded flex flex-col items-center">
+                  <div class="text-[10px] bg-amber-400 text-slate-950 font-bold px-1 rounded">Digit Duplication [1 vs 11]</div>
+                  <div class="w-16 h-24 flex items-center justify-center text-3xl font-black text-amber-300 opacity-80">
+                    1[1]?
+                  </div>
+                </div>
+                <div class="text-center text-xs text-slate-500">
+                  <p class="font-semibold text-slate-400">Goal Mouth Scramble</p>
+                  <p class="text-[11px]">Goalkeeper arm cross mirrored single "1"</p>
+                </div>
+              </div>
+
+              <div class="absolute z-20 w-10 h-10 rounded-full bg-slate-900/80 border border-slate-700 flex items-center justify-center text-white cursor-pointer hover:scale-110 transition">
+                <svg class="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+              </div>
+            </div>
+
+            <!-- Candidate Roster Match Comparison -->
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-base border border-emerald-500/30">
+                  1
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Ethan Rivera</h4>
+                  <p class="text-[11px] text-slate-400">Goalkeeper (GK)</p>
+                  <p class="text-[10px] text-emerald-400 font-mono-code">In Goal Area (99%)</p>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-slate-800 text-slate-300 font-bold flex items-center justify-center text-base border border-slate-700">
+                  11
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-white">Lucas Vance</h4>
+                  <p class="text-[11px] text-slate-400">Striker (Offense)</p>
+                  <p class="text-[10px] text-slate-400 font-mono-code">Bench at min 81</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coach Quick Actions -->
+          <div class="mt-5 pt-4 border-t border-slate-800">
+            <span class="text-[11px] text-slate-400 block mb-2 font-medium">Coach Decision: Which player made the save?</span>
+            <div id="actions-clip-2" class="grid grid-cols-3 gap-2">
+              <button onclick="resolveClip(2, 'Ethan #1 (GK Save)')" class="py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-sm">
+                Confirm Ethan #1
+              </button>
+              <button onclick="resolveClip(2, 'Lucas #11')" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition border border-slate-700">
+                Assign Lucas #11
+              </button>
+              <button onclick="resolveClip(2, 'Rejected')" class="py-2 px-3 rounded-xl bg-slate-950 hover:bg-red-500/20 text-red-400 font-semibold text-xs transition border border-red-500/20">
+                Discard Clip
+              </button>
+            </div>
+            <div id="resolved-banner-2" class="hidden py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center justify-between">
+              <span>✓ Verified & Assigned to Ethan #1 Reel</span>
+              <button onclick="undoClip(2)" class="text-xs text-slate-400 hover:text-white underline">Undo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queue Confirmation Bar -->
+      <div class="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div id="queue-completion-icon" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <h4 id="queue-title-status" class="text-sm font-bold text-slate-200">2 Items Require Coach Review</h4>
+            <p class="text-xs text-slate-400">Confirm both items to finalize personalized reels for 18 families.</p>
+          </div>
+        </div>
+        <button id="btn-proceed-step-3" onclick="switchStep(3)" class="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-slate-800 text-slate-500 cursor-not-allowed transition" disabled>
+          Approve Roster & Proceed to Delivery
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- STEP 3: Family Reel Preview & Scheduled Sunday Morning Delivery -->
+    <!-- ============================================================== -->
+    <section id="step-3" class="space-y-6 hidden">
+      <!-- Strategy Explanation Banner -->
+      <div class="bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 p-5 rounded-2xl border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-semibold mb-2">
+            <span>Fixing the 30% Unopened Gap</span>
+          </div>
+          <h2 class="text-xl font-bold text-white tracking-tight">Parent Reel Experience & Optimal Notification Window</h2>
+          <p class="text-sm text-slate-400 mt-1 max-w-2xl">
+            Material 5 uncovered that 30% of reels are never opened due to midnight delivery and wrong kid thumbnails. We solve both with high-accuracy thumbnails and scheduled 9:00 AM Sunday dispatch.
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="triggerImmediatePushDemo()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center space-x-1.5 transition">
+            <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span>Simulate Parent Push Notification</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Smart Delivery Scheduler & Impact Metrics -->
+        <div class="space-y-6">
+          <!-- Scheduling Box -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Smart Dispatch Scheduling
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">Eliminates midnight pings that get buried under Monday morning work emails.</p>
+
+            <div class="space-y-3">
+              <label class="block">
+                <span class="text-xs font-semibold text-slate-300">Delivery Window</span>
+                <select id="dispatch-time-select" onchange="updateDeliveryEstimate()" class="mt-1 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                  <option value="sun-9am" selected>Sunday @ 9:00 AM (Recommended - Peak Family Open Window)</option>
+                  <option value="sun-6pm">Sunday @ 6:00 PM (Dinner Hour)</option>
+                  <option value="immediate">Immediate Dispatch (Late Night - Deprecated Default)</option>
+                </select>
+              </label>
+
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 text-xs space-y-2">
+                <div class="flex justify-between items-center text-slate-400">
+                  <span>Recipients:</span>
+                  <span class="text-slate-200 font-semibold">18 Registered Families</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-400">
+                  <span>Personalized Reels:</span>
+                  <span class="text-emerald-400 font-semibold font-mono-code">18 Generated</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-400">
+                  <span>Team Recap:</span>
+                  <span class="text-slate-200 font-semibold">1 Aggregated Video</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-400 border-t border-slate-800 pt-2">
+                  <span>Projected Open Rate:</span>
+                  <span id="projected-open-stat" class="text-emerald-400 font-bold font-mono-code">89% (+24% uplift)</span>
+                </div>
+              </div>
+
+              <button onclick="scheduleDispatch()" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-lg shadow-emerald-500/20">
+                Lock In Scheduled Auto-Recap
+              </button>
+            </div>
+          </div>
+
+          <!-- Product Metrics Card (Answering Material 5 Vanity Metric Trap) -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h3 class="text-sm font-bold text-white mb-2">Metrics: Vanity vs Reality</h3>
+            
+            <div class="space-y-3">
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">Old Vanity Metric (Material 5)</span>
+                  <span class="text-amber-400 font-bold">92%</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-1">Calculated <span class="italic">only over opened reels</span>. Hid the 30% that were ignored.</p>
+              </div>
+
+              <div class="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30">
+                <div class="flex justify-between text-xs">
+                  <span class="text-emerald-300 font-semibold">True North Metric (New PRD)</span>
+                  <span class="text-emerald-400 font-bold">78% &rarr; Target 88%</span>
+                </div>
+                <p class="text-[11px] text-emerald-400/80 mt-1">Total Family Retention Rate: Total Shared Reels &divide; Total Enrolled Roster Families.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center & Right: Simulated Mobile Parent View (Maya #14) -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col items-center">
+          <div class="w-full flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+            <div>
+              <span class="text-xs uppercase font-mono-code text-emerald-400">Recipient Preview</span>
+              <h3 class="text-sm font-bold text-white">Parent Experience: Maya Gonzalez (#14)</h3>
+            </div>
+            <span class="text-xs px-2.5 py-1 bg-emerald-500/10 text-emerald-300 rounded-full border border-emerald-500/20">Verified Thumbnail: Clean #14 Match</span>
+          </div>
+
+          <!-- Mobile Phone Mockup -->
+          <div class="w-full max-w-sm bg-slate-950 rounded-[2.5rem] border-4 border-slate-800 p-4 shadow-2xl relative">
+            <!-- Speaker notch -->
+            <div class="w-24 h-4 bg-slate-800 rounded-full mx-auto mb-4"></div>
+
+            <!-- In-App Feed Header -->
+            <div class="flex items-center justify-between mb-3 px-1">
+              <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded-full bg-emerald-500 text-slate-950 font-black text-xs flex items-center justify-center">SR</div>
+                <span class="text-xs font-bold text-white">SidelineReel</span>
+              </div>
+              <span class="text-[10px] text-slate-400">Sunday 9:02 AM</span>
+            </div>
+
+            <!-- Reel Card -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-lg">
+              <!-- Video Player Header -->
+              <div class="relative aspect-[4/3] bg-slate-950 flex items-center justify-center group overflow-hidden">
+                <!-- Verified Badge on Video -->
+                <div class="absolute top-2.5 left-2.5 z-20 px-2 py-0.5 rounded-md bg-slate-900/90 backdrop-blur border border-emerald-500/40 text-[10px] font-bold text-emerald-400 flex items-center space-x-1">
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                  <span>Maya Gonzalez #14</span>
+                </div>
+
+                <div class="absolute top-2.5 right-2.5 z-20 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-mono-code text-slate-300">
+                  0:48 HD
+                </div>
+
+                <!-- Simulated Goal Highlight Visual -->
+                <div class="w-full h-full bg-gradient-to-tr from-slate-900 via-slate-800 to-emerald-950 flex flex-col items-center justify-center text-center p-4">
+                  <div class="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mb-2">
+                    <span class="text-2xl font-black text-emerald-400">14</span>
+                  </div>
+                  <p class="text-xs font-bold text-white">3 Highlights • 1 Assist • 1 Goal</p>
+                  <p class="text-[10px] text-slate-400">Ridgeline U14 vs Westside (2 - 1)</p>
+                </div>
+
+                <!-- Play Button -->
+                <button onclick="playMockReel()" class="absolute z-20 w-12 h-12 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg hover:scale-105 transition">
+                  <svg class="w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                </button>
+              </div>
+
+              <!-- Card Details -->
+              <div class="p-3.5 space-y-3">
+                <div>
+                  <h4 class="text-xs font-bold text-white">Maya's Weekend Reel is Ready! ⚽</h4>
+                  <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                    Curated by Coach Chen & SidelineReel AI. Ready to send to grandparents or save to phone.
+                  </p>
+                </div>
+
+                <!-- One-Tap Share Action (90% real-world usage driver) -->
+                <div class="space-y-2 pt-1">
+                  <button onclick="triggerShareAction()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-xs flex items-center justify-center space-x-2 shadow-md shadow-emerald-500/20 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                    <span>One-Tap Share to Family Group / SMS</span>
+                  </button>
+
+                  <div class="flex items-center justify-between text-[11px] px-1 text-slate-400">
+                    <button onclick="showToast('Reel saved to camera roll with team watermark!')" class="hover:text-slate-200 flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                      <span>Download</span>
+                    </button>
+                    <span class="text-slate-600">•</span>
+                    <button onclick="showToast('Editor opened (Note: 94% of parents prefer zero editing)')" class="hover:text-slate-200">
+                      Trim / Music
+                    </button>
+                    <span class="text-slate-600">•</span>
+                    <button onclick="showToast('Report feedback sent to Coach & Support')" class="hover:text-amber-400">
+                      Wrong clip?
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Home indicator bar -->
+            <div class="w-32 h-1 bg-slate-800 rounded-full mx-auto mt-4"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer Navigation / Assessment Reference -->
+  <footer class="border-t border-slate-900 bg-slate-950 text-slate-500 text-xs py-4 px-6 text-center">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>
+        <span>Ajaia PM Assessment Core Prototype • Built for </span>
+        <a href="https://ajaia.ai" target="_blank" class="text-emerald-400 hover:underline">Ajaia Product Suite</a>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span>Active Dataset: Ridgeline U14 (18 Players)</span>
+        <span>•</span>
+        <button onclick="resetDemoState()" class="text-slate-400 hover:text-white underline">Reset Full Prototype State</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    // State management
+    const state = {
+      currentStep: 1,
+      pipelineRunning: false,
+      pipelineDone: false,
+      clipsResolved: {
+        1: false,
+        2: false
+      },
+      stats: {
+        frames: 0,
+        plays: 0,
+        highConf: 0,
+        flags: 0
+      }
+    };
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl text-xs font-semibold shadow-xl border backdrop-blur transition-all duration-300 transform translate-y-2 opacity-0 flex items-center space-x-2 ${
+        type === 'success' 
+          ? 'bg-emerald-950/90 border-emerald-500 text-emerald-200' 
+          : type === 'warning'
+          ? 'bg-amber-950/90 border-amber-500 text-amber-200'
+          : 'bg-slate-900/90 border-slate-700 text-slate-200'
+      }`;
+      
+      const icon = type === 'success' 
+        ? '<svg class="w-4 h-4 text-emerald-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>'
+        : '<svg class="w-4 h-4 text-slate-400 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>';
+
+      toast.innerHTML = `${icon}<span>${message}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function switchStep(stepNumber) {
+      state.currentStep = stepNumber;
+
+      // Update section visibility
+      ['step-1', 'step-2', 'step-3'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (idx + 1 === stepNumber) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+
+      // Update Stepper buttons styling
+      [1, 2, 3].forEach(num => {
+        const btn = document.getElementById(`step-btn-${num}`);
+        if (num === stepNumber) {
+          btn.className = "px-4 py-1.5 rounded-lg font-medium transition-all text-emerald-400 bg-slate-800 shadow-sm flex items-center space-x-2";
+        } else {
+          btn.className = "px-4 py-1.5 rounded-lg font-medium transition-all text-slate-400 hover:text-slate-200 flex items-center space-x-2";
+        }
+      });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function addConsoleLog(text, highlight = false) {
+      const consoleBox = document.getElementById('console-logs');
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const p = document.createElement('p');
+      p.className = highlight ? "text-emerald-400 font-semibold" : "text-slate-400";
+      p.innerHTML = `<span class="text-slate-600">[${time}]</span> ${text}`;
+      consoleBox.appendChild(p);
+      consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
+
+    function runSimulatedPipeline() {
+      if (state.pipelineRunning) return;
+      state.pipelineRunning = true;
+
+      // UI changes
+      document.getElementById('load-sample-btn').disabled = true;
+      document.getElementById('load-sample-btn').classList.add('opacity-50', 'cursor-not-allowed');
+      document.getElementById('idle-prompt').classList.add('hidden');
+      document.getElementById('scanline').classList.remove('hidden');
+      document.getElementById('cv-status-pill').textContent = "Status: Neural Inference In Progress...";
+      document.getElementById('cv-status-pill').className = "text-xs px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 font-mono-code border border-emerald-500/20";
+
+      addConsoleLog("Ingesting Ridgeline_U14_vs_Westside_Final.mp4 (4K, 60fps)...");
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 4;
+        document.getElementById('progress-percent').innerText = `${progress}%`;
+        document.getElementById('progress-bar-fill').style.width = `${progress}%`;
+
+        // Telemetry increment
+        state.stats.frames += 140;
+        document.getElementById('stat-frames').innerText = state.stats.frames.toLocaleString();
+
+        if (progress === 20) {
+          addConsoleLog("Extracted audio surge (+8.4dB at 14m22s): Goal event confirmed.");
+          state.stats.plays = 3;
+          document.getElementById('stat-plays').innerText = state.stats.plays;
+        }
+
+        if (progress === 44) {
+          addConsoleLog("OCR Detected jersey #9 (Confidence: 98.2%) &rarr; Auto-attributed to Sophia K.");
+          state.stats.highConf += 1;
+          document.getElementById('stat-high').innerText = state.stats.highConf;
+          document.getElementById('box-player-9').classList.remove('opacity-0', 'scale-95');
+        }
+
+        if (progress === 68) {
+          addConsoleLog("<span class='text-amber-400'>[AMBIGUITY FLAG] Jersey #14 obscured by fold. OCR confidence 62.4% (#14 vs #4). Rerouted to Review Queue.</span>", true);
+          state.stats.flags += 1;
+          document.getElementById('stat-flags').innerText = state.stats.flags;
+          document.getElementById('box-player-14').classList.remove('opacity-0', 'scale-95');
+        }
+
+        if (progress === 88) {
+          addConsoleLog("<span class='text-amber-400'>[AMBIGUITY FLAG] Goalkeeper digit clash. OCR 58.1% (#1 vs #11). Flagged.</span>", true);
+          state.stats.flags += 1;
+          document.getElementById('stat-flags').innerText = state.stats.flags;
+          document.getElementById('box-player-1').classList.remove('opacity-0', 'scale-95');
+        }
+
+        if (progress >= 100) {
+          clearInterval(interval);
+          state.pipelineRunning = false;
+          state.pipelineDone = true;
+          document.getElementById('scanline').classList.add('hidden');
+          document.getElementById('cv-status-pill').textContent = "Ingestion Complete: 2 Human-Review Flags";
+          document.getElementById('cv-status-pill').className = "text-xs px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-300 font-mono-code border border-amber-500/30";
+          
+          state.stats.plays = 8;
+          state.stats.highConf = 6;
+          document.getElementById('stat-plays').innerText = state.stats.plays;
+          document.getElementById('stat-high').innerText = state.stats.highConf;
+
+          addConsoleLog("Batch finished. 6 high-confidence plays processed. 2 flagged items held for Coach.", true);
+
+          // Enable button
+          const proceedBtn = document.getElementById('proceed-to-step-2');
+          proceedBtn.disabled = false;
+          proceedBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+          proceedBtn.classList.add('bg-emerald-500', 'hover:bg-emerald-400', 'text-slate-950', 'shadow-lg', 'shadow-emerald-500/20');
+
+          showToast("AI Vision pipeline completed: 2 items require coach verification.", "warning");
+        }
+      }, 70);
+    }
+
+    function resolveClip(clipId, resolvedAs) {
+      state.clipsResolved[clipId] = true;
+
+      // Update card UI
+      const card = document.getElementById(`card-flag-${clipId}`);
+      card.classList.remove('border-amber-500/40');
+      card.classList.add('border-emerald-500/50', 'bg-emerald-950/10');
+
+      document.getElementById(`status-badge-${clipId}`).className = "text-xs px-2 py-0.5 rounded-full font-mono-code bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+      document.getElementById(`status-badge-${clipId}`).innerText = "100% Verified";
+
+      document.getElementById(`actions-clip-${clipId}`).classList.add('hidden');
+      document.getElementById(`resolved-banner-${clipId}`).classList.remove('hidden');
+
+      showToast(`Clip #${clipId} verified and mapped to: ${resolvedAs}`, "success");
+      checkQueueProgress();
+    }
+
+    function undoClip(clipId) {
+      state.clipsResolved[clipId] = false;
+      const card = document.getElementById(`card-flag-${clipId}`);
+      card.classList.add('border-amber-500/40');
+      card.classList.remove('border-emerald-500/50', 'bg-emerald-950/10');
+
+      document.getElementById(`status-badge-${clipId}`).className = "text-xs px-2 py-0.5 rounded-full font-mono-code bg-amber-500/10 text-amber-400 border border-amber-500/20";
+      document.getElementById(`status-badge-${clipId}`).innerText = clipId === 1 ? "OCR Ambiguity: 62%" : "OCR Ambiguity: 58%";
+
+      document.getElementById(`actions-clip-${clipId}`).classList.remove('hidden');
+      document.getElementById(`resolved-banner-${clipId}`).classList.add('hidden');
+
+      checkQueueProgress();
+    }
+
+    function checkQueueProgress() {
+      const resolvedCount = Object.values(state.clipsResolved).filter(Boolean).length;
+      const remaining = 2 - resolvedCount;
+      const pill = document.getElementById('queue-count-pill');
+      const flagPill = document.getElementById('flag-count-pill');
+      const proceedBtn = document.getElementById('btn-proceed-step-3');
+      const statusTitle = document.getElementById('queue-title-status');
+      const iconBox = document.getElementById('queue-completion-icon');
+
+      if (remaining === 0) {
+        pill.innerText = "All clips verified (0 remaining)";
+        pill.className = "font-bold text-emerald-400";
+        flagPill.innerText = "0 flags";
+        flagPill.className = "text-xs px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/30";
+        
+        statusTitle.innerText = "Queue 100% Verified by Coach";
+        statusTitle.className = "text-sm font-bold text-emerald-400";
+        iconBox.innerHTML = '<svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>';
+        iconBox.className = "w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center";
+
+        proceedBtn.disabled = false;
+        proceedBtn.className = "w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 transition cursor-pointer";
+      } else {
+        pill.innerText = `${remaining} clip${remaining > 1 ? 's' : ''} remaining`;
+        pill.className = "font-bold text-amber-400";
+        flagPill.innerText = `${remaining} flags`;
+        
+        statusTitle.innerText = `${remaining} Item${remaining > 1 ? 's' : ''} Require Coach Review`;
+        statusTitle.className = "text-sm font-bold text-slate-200";
+        iconBox.innerHTML = '<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+        iconBox.className = "w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400";
+
+        proceedBtn.disabled = true;
+        proceedBtn.className = "w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-slate-800 text-slate-500 cursor-not-allowed transition";
+      }
+    }
+
+    function updateDeliveryEstimate() {
+      const val = document.getElementById('dispatch-time-select').value;
+      const stat = document.getElementById('projected-open-stat');
+      if (val === 'sun-9am') {
+        stat.innerText = "89% (+24% uplift)";
+        stat.className = "text-emerald-400 font-bold font-mono-code";
+      } else if (val === 'sun-6pm') {
+        stat.innerText = "78% (+11% uplift)";
+        stat.className = "text-emerald-300 font-bold font-mono-code";
+      } else {
+        stat.innerText = "61% (Baseline - midnight drop)";
+        stat.className = "text-amber-400 font-bold font-mono-code";
+      }
+    }
+
+    function scheduleDispatch() {
+      showToast("Auto-Recap scheduled for Sunday 9:00 AM. 18 family reels queued.", "success");
+    }
+
+    function triggerImmediatePushDemo() {
+      showToast("🔔 PUSH NOTIFICATION: 'Maya’s Highlight Reel vs Westside is here! Tap to watch.'", "info");
+    }
+
+    function triggerShareAction() {
+      // Fallback copy using execCommand for sandbox safety
+      const dummyInput = document.createElement("input");
+      document.body.appendChild(dummyInput);
+      dummyInput.value = "https://sidelinereel.ajaia.ai/r/ridgeline-u14/maya-14-highlights";
+      dummyInput.select();
+      try {
+        document.execCommand("copy");
+        showToast("✓ Reel link copied to clipboard: Shared with grandparents!", "success");
+      } catch (err) {
+        showToast("Shared with grandparents via SMS simulation!", "success");
+      }
+      document.body.removeChild(dummyInput);
+    }
+
+    function playMockReel() {
+      showToast("▶ Playing Maya's verified 3-play highlight compilation (HD)", "info");
+    }
+
+    function resetDemoState() {
+      state.pipelineRunning = false;
+      state.pipelineDone = false;
+      state.clipsResolved = { 1: false, 2: false };
+      state.stats = { frames: 0, plays: 0, highConf: 0, flags: 0 };
+
+      document.getElementById('stat-frames').innerText = "0";
+      document.getElementById('stat-plays').innerText = "0";
+      document.getElementById('stat-high').innerText = "0";
+      document.getElementById('stat-flags').innerText = "0";
+      document.getElementById('progress-percent').innerText = "0%";
+      document.getElementById('progress-bar-fill').style.width = "0%";
+      document.getElementById('console-logs').innerHTML = '<p class="text-slate-500">// System idle. Ready to parse match footage.</p>';
+
+      document.getElementById('idle-prompt').classList.remove('hidden');
+      document.getElementById('box-player-14').classList.add('opacity-0', 'scale-95');
+      document.getElementById('box-player-9').classList.add('opacity-0', 'scale-95');
+      document.getElementById('box-player-1').classList.add('opacity-0', 'scale-95');
+
+      document.getElementById('load-sample-btn').disabled = false;
+      document.getElementById('load-sample-btn').classList.remove('opacity-50', 'cursor-not-allowed');
+
+      undoClip(1);
+      undoClip(2);
+      switchStep(1);
+      showToast("Prototype reset to initial state.", "info");
+    }
+
+    window.onload = function() {
+      console.log("SidelineReel Prototype loaded successfully.");
+    };
+  </script>
+</body>
+</html>
